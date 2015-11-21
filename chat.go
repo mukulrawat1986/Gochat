@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net"
+	"os"
 )
 
 // This struct handles:
@@ -87,11 +88,37 @@ func main() {
 	log.Println("Chat server starting")
 
 	// Create a TCP listener on port 6677
+	listener, err := net.Listen("tcp", ":6677")
+
+	if err != nil {
+		log.Println("Error whole listening on port 6677")
+		log.Println("Error: (%s)", err)
+		os.Exit(1)
+	}
 
 	// Create a new instance of chatroom using NewChatRoom()
+	chatroom := NewChatRoom()
+
 	// and call chatroom.ListenForMessages()
+	chatroom.ListenForMessages()
 
 	// Loop and listen for accepted connections on port 6677
+	for {
 
-	// Print out remote address of connection using log
+		// accept, wait for and return the next connection on listener
+		c, err := listener.Accept()
+
+		if err != nil {
+			log.Println("Error while accepting network connections")
+			log.Println("Error : (%s)", err)
+			os.Exit(1)
+		}
+
+		// Print out the remote address of the connection
+		addr := c.RemoteAddr()
+
+		log.Println("The remote address of connection is %s", addr)
+
+	}
+
 }
