@@ -5,6 +5,11 @@ import (
 	"net"
 )
 
+// This struct handles:
+// - users joining
+// - users disconnecting
+// - receiving individual messages from users and broadcasting them
+// to other users
 type ChatRoom struct {
 }
 
@@ -29,6 +34,10 @@ func (cr *ChatRoom) Join(conn net.Conn) {
 func (cr *ChatRoom) Broadcast(msg string) {
 }
 
+// This struct handles:
+// - reading lines of data from user socket and notifying the chatroom
+// there is a new message
+// - writing data back to the socket (eg messages from other users)
 type ChatUser struct {
 }
 
