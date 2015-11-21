@@ -85,4 +85,13 @@ func (cu *ChatUser) Close() {
 //
 func main() {
 	log.Println("Chat server starting")
+
+	// Create a TCP listener on port 6677
+
+	// Create a new instance of chatroom using NewChatRoom()
+	// and call chatroom.ListenForMessages()
+
+	// Loop and listen for accepted connections on port 6677
+
+	// Print out remote address of connection using log
 }
