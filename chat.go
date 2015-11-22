@@ -12,8 +12,14 @@ import (
 // - users disconnecting
 // - receiving individual messages from users and broadcasting them
 // to other users
+//
+// `users` contain ChatUser connections.
+// `incoming` receives incoming messages from ChatUser connections.
+// `joins` receives incoming new ChatUser connections.
+// `disconnects` receives disconnect notifications.
+//
 type ChatRoom struct {
-	user        map[string]*ChatUser
+	users       map[string]*ChatUser
 	incoming    chan string
 	joins       chan *ChatUser
 	disconnects chan string
@@ -22,7 +28,7 @@ type ChatRoom struct {
 // NewChatRoom will create a ChatRoom
 func NewChatRoom() *ChatRoom {
 	return &ChatRoom{
-		user:        make(map[string]*ChatUser),
+		users:       make(map[string]*ChatUser),
 		incoming:    make(chan string),
 		joins:       make(chan *ChatUser),
 		disconnects: make(chan string),
@@ -49,6 +55,15 @@ func (cr *ChatRoom) Broadcast(msg string) {
 // - reading lines of data from user socket and notifying the chatroom
 // there is a new message
 // - writing data back to the socket (eg messages from other users)
+//
+// `conn` is the socket
+// `disconnect` indicated whether or not the socket is disconnected
+// `username` is the chat username
+// `outgoing` is a channel with all pending outgoing messages
+//  to be written to the socket.
+// `reader` is the buffered socket read stream
+//  `writer` is the buffered socket write stream
+//
 type ChatUser struct {
 	conn       net.Conn
 	disconnect bool
