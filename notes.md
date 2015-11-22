@@ -18,4 +18,12 @@ So what we are doing is that, first we create a listener of type Listener interf
  
  ## Populate `ChatRoom` and `ChatUser`
  
+ Design of datastructure and requirements:
+ - There's one `ChatRoom` in the app.
+ - The `ChatRoom` must know about all active connections.
+ - Each connection is related to a user connecting to the `ChatRoom` and hence is tracked in a `ChatUser` object.
+ - The `ChatRoom` must be able to recive messages from a single connection, and broadcast to all other connections.
+ - When a new connection is established, the `ChatRoom` must be notified of these new connections.
+ 
+ 
  
