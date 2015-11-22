@@ -12,11 +12,20 @@ import (
 // - receiving individual messages from users and broadcasting them
 // to other users
 type ChatRoom struct {
+	user        map[string]*ChatUser
+	incoming    chan string
+	joins       chan *ChatUser
+	disconnects chan string
 }
 
 // NewChatRoom will create a ChatRoom
 func NewChatRoom() *ChatRoom {
-	return &ChatRoom{}
+	return &ChatRoom{
+		users:       make(map[string]*ChatUser),
+		incoming:    make(chan string),
+		joins:       make(chan *ChatUser),
+		disconnects: make(chan string),
+	}
 }
 
 // Listen for messages in the ChatRoom
