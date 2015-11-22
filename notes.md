@@ -25,5 +25,12 @@ So what we are doing is that, first we create a listener of type Listener interf
  - The `ChatRoom` must be able to recive messages from a single connection, and broadcast to all other connections.
  - When a new connection is established, the `ChatRoom` must be notified of these new connections.
  
+ Our `ChatUser` struct contains a private member reader, of type *bufio.Reader, and a private member writer, of type *bufio.Writer.
+ Package bufio implements buffered I/O. It wraps an io.Reader or io.Writer object, creating another object (Reader or Writer) that also implements the interface but provides buffering and some help for textual I/O.
+ 
+ We create the `reader` and `writer` variables, using `bufio.NewReader` and `bufio.NewWriter` functions. We will be passing the net.Conn to these functions to get the `reader` and `writer` variables. Interesting thing is that net.Conn interface has the function `Read` and `Write`, hence it satisfies both the `io.Reader` and `io.Writer` interface. So we can pass net.Conn to `bufio.NewReader` and `bufio.NewWriter` functions.
+ 
+ 
+ 
  
  

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"net"
 	"os"
@@ -21,7 +22,7 @@ type ChatRoom struct {
 // NewChatRoom will create a ChatRoom
 func NewChatRoom() *ChatRoom {
 	return &ChatRoom{
-		users:       make(map[string]*ChatUser),
+		user:        make(map[string]*ChatUser),
 		incoming:    make(chan string),
 		joins:       make(chan *ChatUser),
 		disconnects: make(chan string),
@@ -49,11 +50,28 @@ func (cr *ChatRoom) Broadcast(msg string) {
 // there is a new message
 // - writing data back to the socket (eg messages from other users)
 type ChatUser struct {
+	conn       net.Conn
+	disconnect bool
+	username   string
+	outgoing   chan string
+	reader     *bufio.Reader
+	writer     *bufio.Writer
 }
 
 // NewChatUser creates a new ChatUser
 func NewChatUser(conn net.Conn) *ChatUser {
-	return &ChatUser{}
+
+	writer := bufio.NewWriter(conn)
+	reader := bufio.NewReader(conn)
+
+	return &ChatUser{
+		conn:       conn,
+		disconnect: false,
+		reader:     reader,
+		writer:     writer,
+		outgoing:   make(chan string),
+		username:   "",
+	}
 }
 
 // Read incoming messages in a loop
