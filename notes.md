@@ -30,6 +30,28 @@ So what we are doing is that, first we create a listener of type Listener interf
  
  We create the `reader` and `writer` variables, using `bufio.NewReader` and `bufio.NewWriter` functions. We will be passing the net.Conn to these functions to get the `reader` and `writer` variables. Interesting thing is that net.Conn interface has the function `Read` and `Write`, hence it satisfies both the `io.Reader` and `io.Writer` interface. So we can pass net.Conn to `bufio.NewReader` and `bufio.NewWriter` functions.
  
+ In our main function, inside our infinite for loop, we add each accepted connection to our ChatRoom using the `chatroom.Join()` method. We use the `go` keyword there and make sure that we create a separate goroutine for each accepted connection. 
+ 
+ ## Login to the Chat Server
+
+Now we will:  
+- Print a banner every time a user connects.
+- Implement a chatuser.Login() method to be able to read a username from the user.
+ 
+ - We are creating a new goroutine for each connection that is accepted by the server and is joined to the `ChatRoom`.
+ - In this goroutine when we add a connection to our `ChatRoom`, we will create a new `ChatUser` object for each connection.
+ - Then we use this `ChatUser` object to login by invoking its Login() method.
+ - We notify the addition of a new user by putting the newly created `ChatUser` object on the `joins` channel of the `ChatRoom`.
+
+ The `chatuser.Login` method is called everytime we accept a new connection, add it to our `ChatRoom` and create a new `ChatUser` object. Once the user  Login, the first thing we do is display our banner. We write the message of the banner to our socket connection by calling the `WriteString` method of `ChatUser`.  
+ Inside the `WriteString` method of `ChatUser`, we call the `WriteString` method of our buffered writer. After that we need to call the Flush method of our buffered writer so that it writes any buffered data to the underlying `io.Writer`, which in our case is the socket connection, `net.Conn`.  
+ 
+ Now we are going to read from the socket connection. We want to ask the user's `username` and store it in `ChatUser.username` field.
+ 
+ To read the string from the socket connection we will be using the ReadLine() method of `ChatUser`. In the ReadLine() method, we will call the `ReadString('\n')` method of buffered reader instead of the `ReadLine()` method as mentioned in the docs.
+ 
+ 
+ 
  
  
  

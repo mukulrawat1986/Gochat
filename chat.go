@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -44,7 +45,24 @@ func (cr *ChatRoom) Logout(username string) {
 }
 
 // Allows a user to join the ChatRoom
+// we run a separate goroutine for each user.
 func (cr *ChatRoom) Join(conn net.Conn) {
+
+	// Create a new ChatUser object using NewChatUser
+	cu := NewChatUser(conn)
+
+	// call chatuser.Login on this object and verify there is no error
+	err := cu.Login(cr)
+
+	if err != nil {
+		log.Println("Error while logging in using newly created user")
+		log.Println("Error: (%s)", err)
+		os.Exit(1)
+	}
+
+	// Notifies of a new user by putting the newly created ChatUser
+	// on the ChatRoom.joins channel
+	cr.joins <- cu
 }
 
 // Broadcast a message
@@ -98,17 +116,68 @@ func (cu *ChatUser) WriteOutgoingMessages(chatroom *ChatRoom) {
 }
 
 // Login the user
+// This method is called everytime a new connection is added to our
+// ChatRoom and we create a new ChatUser object
 func (cu *ChatUser) Login(chatroom *ChatRoom) error {
+
+	// Create a helpful banner for the user to see when it logs in
+	var msg, owner string
+	owner = "Mukul"
+	msg = fmt.Sprintf("Welcome to %s's Ultimate chat server!\n", owner)
+	cu.WriteString(msg)
+
+	// Ask for username
+	cu.WriteString("Please Enter your username: ")
+
+	// Read the username from the socket connection
+	// we ignore the error, because our functions are written in a way that they
+	// will halt execution if an error is encountered.
+	cu.username, _ = cu.ReadLine()
+
+	log.Println("User logged in : ", cu.username)
+
+	// Welcome the user by writing out its name in the connection
+	cu.WriteString("Welcome " + cu.username + "\n")
+
 	return nil
 }
 
 // Read a line from the socket
 func (cu *ChatUser) ReadLine() (string, error) {
-	return "", nil
+
+	// We have a ReadLine() function on the Reader interface
+	// but according to the docs we should prefer ReadString('\n')
+	// method.
+	s, err := cu.reader.ReadString('\n')
+	if err != nil {
+		log.Println("Error while reading from socket connection")
+		log.Println("Error (%s)", err)
+		os.Exit(1)
+	}
+	return s, nil
 }
 
-// Write a line from the socket
+// Write a line to the socket
 func (cu *ChatUser) WriteString(msg string) error {
+
+	// Write the string message on our socket connection
+	// which is an io.Writer
+	_, err := cu.writer.WriteString(msg)
+	if err != nil {
+		log.Println("Error while writing the message to socket connection")
+		log.Println("Error (%s)", err)
+		os.Exit(1)
+	}
+
+	// Flush the writer so it writes any buffered data to the underlying
+	// io.Writer, which is net.Conn in this case
+	err = cu.writer.Flush()
+	if err != nil {
+		log.Println("Error while flushing the message")
+		log.Println("Error (%s)", err)
+		os.Exit(1)
+	}
+
 	return nil
 }
 
@@ -160,6 +229,10 @@ func main() {
 		addr := c.RemoteAddr()
 
 		log.Println("The remote address of connection is %s", addr)
+
+		// add this connection to our ChatRoom
+		// Create a separate goroutine for each connection
+		go chatroom.Join(c)
 
 	}
 
