@@ -38,6 +38,20 @@ func NewChatRoom() *ChatRoom {
 
 // Listen for messages in the ChatRoom
 func (cr *ChatRoom) ListenForMessages() {
+
+	// Listen in a loop for any messages on the channels in the
+	// ChatRoom object and act accordingly
+	//
+	// We will run a separate goroutine for this
+	go func() {
+		for {
+			select {
+			case user := <-cr.joins:
+				cr.users[user.username] = user
+				cr.Broadcast("*** " + user.username + " just joined the channel")
+			}
+		}
+	}()
 }
 
 // Logout a user from the ChatRoom
@@ -67,6 +81,10 @@ func (cr *ChatRoom) Join(conn net.Conn) {
 
 // Broadcast a message
 func (cr *ChatRoom) Broadcast(msg string) {
+	// Broadcast the message to each of the user
+	for _, user := range cr.users {
+		user.Send(msg)
+	}
 }
 
 // This struct handles:
@@ -113,6 +131,15 @@ func (cu *ChatUser) ReadIncomingMessages(chatroom *ChatRoom) {
 
 // Wait for outgoing messages in a loop, and write them
 func (cu *ChatUser) WriteOutgoingMessages(chatroom *ChatRoom) {
+	// Constantly read a message from the chatuser.outgoing channel
+	// and write the message to the socket connection.
+	go func() {
+		for {
+			msg := <-cu.outgoing
+			msg += "\n"
+			cu.WriteString(msg)
+		}
+	}()
 }
 
 // Login the user
@@ -138,6 +165,9 @@ func (cu *ChatUser) Login(chatroom *ChatRoom) error {
 
 	// Welcome the user by writing out its name in the connection
 	cu.WriteString("Welcome " + cu.username + "\n")
+
+	// Start listening on outgoing channel using WriteOutgoingMessages method
+	cu.WriteOutgoingMessages(chatroom)
 
 	return nil
 }
@@ -183,6 +213,8 @@ func (cu *ChatUser) WriteString(msg string) error {
 
 // Put a message on the outgoing message queue
 func (cu *ChatUser) Send(msg string) {
+	// Place the message on the outgoing channel
+	cu.outgoing <- msg
 }
 
 // Close the socket

@@ -49,7 +49,19 @@ Now we will:
  Now we are going to read from the socket connection. We want to ask the user's `username` and store it in `ChatUser.username` field.
  
  To read the string from the socket connection we will be using the ReadLine() method of `ChatUser`. In the ReadLine() method, we will call the `ReadString('\n')` method of buffered reader instead of the `ReadLine()` method as mentioned in the docs.
- 
+
+The `ChatRoom.Joins()` method places a newly created `ChatUser` object on the joins channel. Now, what we want to do is to be able to track all the users in the `ChatRoom.users` map, so that we can tell other users when new users have joined, and can also make sure we can broadcast messages effectively. We will do this by implementing the `ChatRoom.ListenForMessages()` method. 
+
+The job of `ChatRoom.ListenForMessages()` is to listen in a loop for any messages on the channels in the chatroom object, and then handle those messages accordingly.
+
+We will run a separate goroutine inside the `ListenForMessages` method, which contains a for/select infinite loop to listen to the `joins` channel. We are using a separate goroutine so that the infinite loop runs in parallel to our main program without blocking the main program.
+
+Once we are done with that we need to make other users aware of the existence of a new user on the chatroom. To do this we will implement the `ChatRoom.Broadcast()` method. This method will pass a message on each of the `ChatUser.outgoing` channel using `ChatUser.Send()` method.
+
+In the `ChatRoom.BroadCast` method we simply loop through all users and call the `ChatUser.Send` message for all users with the message as an argument.
+
+In `ChatUser.Send` method we simply send the message on the `ChatUser.outgoing` channel. The idea is that all users will be listening on this channel 
+
  
  
  
