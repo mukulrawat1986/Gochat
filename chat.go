@@ -46,6 +46,9 @@ func (cr *ChatRoom) ListenForMessages() {
 	go func() {
 		for {
 			select {
+			case msg := <-cr.incoming:
+				cr.Broadcast(msg)
+
 			case user := <-cr.joins:
 				cr.users[user.username] = user
 				cr.Broadcast("*** " + user.username + " just joined the channel")
@@ -127,6 +130,13 @@ func NewChatUser(conn net.Conn) *ChatUser {
 
 // Read incoming messages in a loop
 func (cu *ChatUser) ReadIncomingMessages(chatroom *ChatRoom) {
+	go func() {
+		for {
+			msg, _ := cu.ReadLine()
+			msg = "[" + cu.username + "]" + msg
+			chatroom.incoming <- msg
+		}
+	}()
 }
 
 // Wait for outgoing messages in a loop, and write them
@@ -169,6 +179,9 @@ func (cu *ChatUser) Login(chatroom *ChatRoom) error {
 	// Start listening on outgoing channel using WriteOutgoingMessages method
 	cu.WriteOutgoingMessages(chatroom)
 
+	// Start the goroutine to read an incoming message using ReadIncomingMessages
+	cu.ReadIncomingMessages(chatroom)
+
 	return nil
 }
 
@@ -179,6 +192,7 @@ func (cu *ChatUser) ReadLine() (string, error) {
 	// but according to the docs we should prefer ReadString('\n')
 	// method.
 	s, err := cu.reader.ReadString('\n')
+	s = s[:len(s)-2]
 	if err != nil {
 		log.Println("Error while reading from socket connection")
 		log.Println("Error (%s)", err)
