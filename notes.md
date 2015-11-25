@@ -60,7 +60,14 @@ Once we are done with that we need to make other users aware of the existence of
 
 In the `ChatRoom.BroadCast` method we simply loop through all users and call the `ChatUser.Send` message for all users with the message as an argument.
 
-In `ChatUser.Send` method we simply send the message on the `ChatUser.outgoing` channel. The idea is that all users will be listening on this channel 
+In `ChatUser.Send` method we simply send the message on the `ChatUser.outgoing` channel. The idea is that all users will be listening on this channel via the `ChatUser.WriteOutgoingMessages` method and will write that method to the socket.
+
+Inside the `ChatUser.WriteOutgoingMessages` method we run an infinite loop inside a goroutine, where we check the `outgoing` channel for any message and write the message to the socket connection once it arrives. We will start the `WriteOutgoingMessages` method when the user logins, so we will call the method at the end of `ChatUser.Login` method.
+
+
+## BroadCasting Messages
+
+The chatroom that we are currently building is more like a Broadcast server. If a user writes something to the socket connection, our chat program will read it from the socket connection and then broadcast it to all users connected to the chatroom.
 
  
  
