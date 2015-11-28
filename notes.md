@@ -64,10 +64,23 @@ In `ChatUser.Send` method we simply send the message on the `ChatUser.outgoing` 
 
 Inside the `ChatUser.WriteOutgoingMessages` method we run an infinite loop inside a goroutine, where we check the `outgoing` channel for any message and write the message to the socket connection once it arrives. We will start the `WriteOutgoingMessages` method when the user logins, so we will call the method at the end of `ChatUser.Login` method.
 
-
 ## BroadCasting Messages
 
-The chatroom that we are currently building is more like a Broadcast server. If a user writes something to the socket connection, our chat program will read it from the socket connection and then broadcast it to all users connected to the chatroom.
+The chatroom that we are currently building is more like a Broadcast server. If a user writes something to the socket connection, our chat program will read it from the socket connection and then broadcast it to all users connected to the chatroom.  
+
+It works this way:
+
+- We have a channel `ChatRoom.incoming` where we will put all messages that come from all the user sockets.
+- Each `ChatUser` object will be modified to have a loop that will look for any new lines read in from the client, and sends it to `ChatRoom.incoming` channel. 
+- In our `ChatRoom.ListenForMessages`, we will look for any new messages on `ChatRoom.incoming` and call `Broadcast` to broadcast it out to all of the other connected sockets.
+
+To implement all the above steps this is what we do:  
+
+- We implement the `ChatUser.ReadincomingMessages` function. We implement it in a way that it constantly reads messages from the socket buffer.  
+- Since we want this function needs to be run continuously, we will run our infinite for loop in a goroutine. Inside the goroutine we will run an infinite for loop, inside which we will read message from the socket buffer using `ChatUser.ReadLine`, and if there is a message we will forward it to our `ChatRoom.incoming` channel.
+- We will start this goroutine when a user logins, so we will call it in `ChatUser.Login`
+- Now we will update `ChatUser.Login` method. We will add a case in the for/select loop that reads a message string from the `incoming` channel. Once the message is read, we will call `ChatRoom.Broadcast` on the read message.
+
 
  
  
