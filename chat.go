@@ -52,6 +52,19 @@ func (cr *ChatRoom) ListenForMessages() {
 			case user := <-cr.joins:
 				cr.users[user.username] = user
 				cr.Broadcast("*** " + user.username + " just joined the channel")
+
+			case username := <-cr.disconnects:
+				if cu, ok := cr.users[username]; ok {
+					// call Close() on ChatUser object
+					cu.Close()
+
+					// remove ChatUser object from the map
+					delete(cr.users, username)
+
+					// Broadcast to send a message
+					cr.Broadcast("***" + "[" + username + "]" + " has disconnected")
+
+				}
 			}
 		}
 	}()
@@ -59,6 +72,8 @@ func (cr *ChatRoom) ListenForMessages() {
 
 // Logout a user from the ChatRoom
 func (cr *ChatRoom) Logout(username string) {
+	// send the supplied username to the cr.disconnects channel
+	cr.disconnects <- username
 }
 
 // Allows a user to join the ChatRoom
@@ -132,9 +147,18 @@ func NewChatUser(conn net.Conn) *ChatUser {
 func (cu *ChatUser) ReadIncomingMessages(chatroom *ChatRoom) {
 	go func() {
 		for {
-			msg, _ := cu.ReadLine()
-			msg = "[" + cu.username + "]" + msg
-			chatroom.incoming <- msg
+			msg, err := cu.ReadLine()
+			if cu.disconnect {
+				break
+			}
+			if err != nil {
+				chatroom.Logout(cu.username)
+				break
+			}
+			if msg != "" {
+				msg = "[" + cu.username + "]" + msg
+				chatroom.incoming <- msg
+			}
 		}
 	}()
 }
@@ -146,8 +170,15 @@ func (cu *ChatUser) WriteOutgoingMessages(chatroom *ChatRoom) {
 	go func() {
 		for {
 			msg := <-cu.outgoing
+			if cu.disconnect {
+				break
+			}
 			msg += "\n"
-			cu.WriteString(msg)
+			err := cu.WriteString(msg)
+			if err != nil {
+				chatroom.Logout(cu.username)
+				break
+			}
 		}
 	}()
 }
@@ -196,7 +227,8 @@ func (cu *ChatUser) ReadLine() (string, error) {
 	if err != nil {
 		log.Println("Error while reading from socket connection")
 		log.Println("Error (%s)", err)
-		os.Exit(1)
+		// os.Exit(1)
+		return "", err
 	}
 	return s, nil
 }
@@ -210,7 +242,8 @@ func (cu *ChatUser) WriteString(msg string) error {
 	if err != nil {
 		log.Println("Error while writing the message to socket connection")
 		log.Println("Error (%s)", err)
-		os.Exit(1)
+		// os.Exit(1)
+		return err
 	}
 
 	// Flush the writer so it writes any buffered data to the underlying
@@ -233,6 +266,8 @@ func (cu *ChatUser) Send(msg string) {
 
 // Close the socket
 func (cu *ChatUser) Close() {
+	cu.disconnect = true
+	cu.conn.Close()
 }
 
 // Main function to create a socket, bind to port 6677

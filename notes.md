@@ -82,6 +82,23 @@ To implement all the above steps this is what we do:
 - Now we will update `ChatUser.Login` method. We will add a case in the for/select loop that reads a message string from the `incoming` channel. Once the message is read, we will call `ChatRoom.Broadcast` on the read message.
 
 
+## Notify when users disconnect
+
+Just like we know when users connect, we also need a mechanism to know when users disconnect.  
+We need to write some code to handle disconnects and display a message when a user disconnects.  
+
+We accomplish this with more channels. We will do the following:
+
+- Whenever a ChatUser fails to read/write to its connection socket, we will send a message on the `ChatRoom.disconnect` channel to notify the `ListenForMessage` loop that the socket has been disconnected.  
+- When such a message is received by the `ChatRoom`, remove the socket connection from the `users` map and broadcast a message to the rest of the client saying it's disconnected.
+- As of right now, we are using error handling to check for errors if a connection is disconnected. This will be changed.
+
+
+Now we will be doing the following:  
+
+- In the `ChatRoom.Logout` method, send the supplied `username` to the `cr.disconnects` channel.
+- Now we will update the `ListenForMessages` loop to handle messages on `cr.disconnects`. In `ListenForMessages` we will add a new case in the for/select loop that reads the `username` from `cr.disconnects`. If the `username` is in the map, we will `Close()` on the `ChatUser` object, and remove it from the map. We will also `Broadcast` a message to all the connected users about the user that has left the chatroom.
+- We will 
  
  
  
